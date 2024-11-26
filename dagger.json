@@ -1,0 +1,33 @@
+{
+  "name": "PortoMeetup",
+  "engineVersion": "v0.14.0",
+  "sdk": "go",
+  "dependencies": [
+    {
+      "name": "infisical",
+      "source": "github.com/NunoFrRibeiro/daggerverse/infisical@infisical/v0.1.3",
+      "pin": "b513c4b32694a85d0e085b92baf818102d3afb37"
+    },
+    {
+      "name": "golang",
+      "source": "github.com/kpenfound/dagger-modules/golang@golang/v0.2.1",
+      "pin": "91e7b59b78c7ec0825aba8a1b2a7938e568ca569"
+    },
+    {
+      "name": "helm",
+      "source": "github.com/sagikazarmark/daggerverse/helm@helm/v0.13.0",
+      "pin": "126b5fbbdad70dbf2a8689600baec2eb78c05ef4"
+    },
+    {
+      "name": "k3s",
+      "source": "github.com/marcosnils/daggerverse/k3s@k3s/v0.1.7",
+      "pin": "833ec36632b2457862f6e3bf1f7107ad65e3e515"
+    },
+    {
+      "name": "proxy",
+      "source": "github.com/kpenfound/dagger-modules/proxy@proxy/v0.2.4",
+      "pin": "3e9985dde6f408e05e7d45e8abbae75c206af4e1"
+    }
+  ],
+  "source": ".dagger"
+}
