@@ -75,3 +75,16 @@ func (m *PortoMeetup) Serve(
 ) *dagger.Service {
 	return m.Container(source, port, binaryName).AsService()
 }
+
+func (m *PortoMeetup) PackageChart(
+	// Name of chart to build a package
+	chart *dagger.Directory,
+
+	// Set the version of the chart
+	// +optional
+	version string,
+) *dagger.File {
+	return dag.Helm().Package(chart, dagger.HelmPackageOpts{
+		Version: version,
+	})
+}

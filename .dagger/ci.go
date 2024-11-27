@@ -12,6 +12,7 @@ var (
 	DH_REPO       = "index.docker.io"
 	COUNTER_IMAGE = "nunofilribeiro/counterbackend:v0.1.0"
 	ADDER_IMAGE   = "nunofilribeiro/adderbackend:v0.1.0"
+	GHCR          = "oci://ghcr.io/openmeterio/helm-charts"
 )
 
 func (m *PortoMeetup) LintAll(
@@ -85,7 +86,7 @@ func (m *PortoMeetup) Deploy(
 	if infisicalId != nil && infisicalProject != "" {
 		registryUser, err := dag.Infisical(infisicalId, infisicalSecret).
 			GetSecret("DH_USER", infisicalProject, "dev", dagger.InfisicalGetSecretOpts{
-				SecretPath: "/flyio",
+				SecretPath: "/",
 			}).
 			Plaintext(ctx)
 		if err != nil {
@@ -121,4 +122,53 @@ func (m *PortoMeetup) Deploy(
 	}
 
 	return result, nil
+}
+
+func (m *PortoMeetup) DeployCharts(
+	ctx context.Context,
+	// Infisical Auth Client ID
+	// +required
+	infisicalId *dagger.Secret,
+	// Infisical Auth Client Secret
+	// +required
+	infisicalSecret *dagger.Secret,
+	// Infisical Project to fetch secrets
+	// +required
+	infisicalProject string,
+) error {
+	if infisicalId != nil && infisicalProject != "" {
+		registryUser, err := dag.Infisical(infisicalId, infisicalSecret).
+			GetSecret("GH_USER", infisicalProject, "dev", dagger.InfisicalGetSecretOpts{
+				SecretPath: "/",
+			}).
+			Plaintext(ctx)
+		if err != nil {
+			return err
+		}
+
+		registryPass := dag.Infisical(infisicalId, infisicalSecret).
+			GetSecret("GH_PASS", infisicalProject, "dev", dagger.InfisicalGetSecretOpts{
+				SecretPath: "/",
+			})
+
+		counterChartDirectory := m.Source.Directory("helm/charts/counter")
+		counterChart := m.PackageChart(counterChartDirectory, "0.1.0")
+		err = dag.Helm().
+			WithRegistryAuth("ghcr.io", registryUser, registryPass).
+			Push(ctx, counterChart, GHCR)
+		if err != nil {
+			return err
+		}
+
+		adderChartDirectory := m.Source.Directory("helm/charts/counter")
+		adderChart := m.PackageChart(adderChartDirectory, "0.1.0")
+		err = dag.Helm().
+			WithRegistryAuth("ghcr.io", registryUser, registryPass).
+			Push(ctx, adderChart, GHCR)
+		if err != nil {
+			return err
+		}
+
+	}
+	return nil
 }

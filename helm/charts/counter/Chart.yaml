@@ -1,0 +1,6 @@
+apiVersion: v2
+name: counter
+description: "A helm to deploy the CounterBackend aplication to Kubernetes for DevOps Porto November Meetup"
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
