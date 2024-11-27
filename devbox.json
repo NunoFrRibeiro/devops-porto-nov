@@ -7,8 +7,6 @@
     "kubernetes-helm@3.15.4",
     "k9s@0.32.5",
     "bat@0.24.0",
-    "talosctl@1.7.6",
-    "doctl@1.112",
     "gh@2.57.0",
     "golangci-lint@1.62.0",
   ],
@@ -17,10 +15,9 @@
       "alias cat='bat --theme 1337'",
       "alias j=just",
       "alias helm=helm --kubeconfig=$PWD/talos/kubeconfig",
-      "source <(dagger completion bash)",
-      "source <(helm completion bash)",
-      "source <(just --completions bash)",
-      "source <(argo completion bash)",
+      "eval \"$(dagger completion bash)\"",
+      "eval \"$(helm completion bash)\"",
+      "eval \"$(just --completions bash)\"",
     ],
     "scripts": {
       "test": [
