@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	"dagger/porto-meetup/internal/dagger"
 	"fmt"
+
+	"dagger/porto-meetup/internal/dagger"
 )
 
 // Run the projects unit tests

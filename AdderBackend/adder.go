@@ -7,40 +7,38 @@ import (
 	"net/http"
 )
 
-const (
+var (
 	counterPort        = "8081"
 	counterContextRoot = "/increment"
 )
 
 func main() {
 	http.HandleFunc("/", indexHandler)
-	http.HandleFunc("/add", addHandler())
+	http.HandleFunc("/add", addHandler)
 
 	log.Println("Adder backend running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func addHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		host := r.Host
-		backendHost := fmt.Sprintf("%s:%s", getHostWithoutPort(host), counterPort)
-		counterBackend := fmt.Sprintf("http://%s%s", backendHost, counterContextRoot)
-		if r.Method != http.MethodPost {
-			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-			return
-		}
-
-		resp, err := http.Post(counterBackend, "application/json", nil)
-		if err != nil {
-			http.Error(w, "Failed to send request", http.StatusInternalServerError)
-			log.Println("Error contacting counter backend: ", err)
-			return
-		}
-		defer resp.Body.Close()
-
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintln(w, "Increment sent to counter backend.")
+func addHandler(w http.ResponseWriter, r *http.Request) {
+	host := r.Host
+	backendHost := fmt.Sprintf("%s:%s", getHostWithoutPort(host), counterPort)
+	counterBackend := fmt.Sprintf("http://%s%s", backendHost, counterContextRoot)
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
 	}
+
+	resp, err := http.Post(counterBackend, "application/json", nil)
+	if err != nil {
+		http.Error(w, "Failed to send request", http.StatusInternalServerError)
+		log.Println("Error contacting counter backend: ", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, "Increment sent to counter backend.")
 }
 
 func getHostWithoutPort(host string) string {
