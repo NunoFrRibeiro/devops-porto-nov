@@ -12,7 +12,7 @@ var (
 	DH_REPO       = "index.docker.io"
 	COUNTER_IMAGE = "nunofilribeiro/counterbackend:v0.1.0"
 	ADDER_IMAGE   = "nunofilribeiro/adderbackend:v0.1.0"
-	GHCR          = "oci://ghcr.io/openmeterio/helm-charts"
+	GHCR          = "oci://ghcr.io/nunofrribeiro/devops-porto-nov"
 )
 
 func (m *PortoMeetup) LintAll(
@@ -58,7 +58,8 @@ func (m *PortoMeetup) ServeAll(
 	adderAsService := m.Serve(adderSource, adderPort, "AdderBackend").WithHostname("AdderBackend")
 
 	counterSource := m.Source.Directory("CounterBackend")
-	counterAsService := m.Serve(counterSource, counterPort, "CounterBackend").WithHostname("CounterBackend")
+	counterAsService := m.Serve(counterSource, counterPort, "CounterBackend").
+		WithHostname("CounterBackend")
 
 	return dag.Proxy().
 		WithService(adderAsService, "AdderBackend", adderPort, adderPort, dagger.ProxyWithServiceOpts{
@@ -160,7 +161,7 @@ func (m *PortoMeetup) DeployCharts(
 			return err
 		}
 
-		adderChartDirectory := m.Source.Directory("helm/charts/counter")
+		adderChartDirectory := m.Source.Directory("helm/charts/adder")
 		adderChart := m.PackageChart(adderChartDirectory, "0.1.0")
 		err = dag.Helm().
 			WithRegistryAuth("ghcr.io", registryUser, registryPass).
@@ -171,4 +172,61 @@ func (m *PortoMeetup) DeployCharts(
 
 	}
 	return nil
+}
+
+func (m *PortoMeetup) TestCharts(
+	ctx context.Context,
+) (string, error) {
+	service, err := m.CreateCluster(ctx).KCDServer.Start(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	kubeConfig := m.GetConfig()
+
+	return dag.Container().From("bitnami/kubectl:1.31.0-debian-12-r4").
+		WithUser("root").
+		WithServiceBinding("k3scluster", service).
+		WithFile("/.kube/config", kubeConfig).
+		WithEnvVariable("KUBECONFIG", "/.kube/config").
+		WithExec([]string{"chown", "1001:0", "/.kube/config"}).
+		WithExec([]string{
+			"bash",
+			"-c",
+			"apt update && apt install -y curl",
+		}).
+		WithDirectory("/demo", m.Source).
+		WithExec([]string{
+			"bash",
+			"-c",
+			"curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash",
+		}).
+		WithExec([]string{
+			"bash",
+			"-c",
+			"helm install --wait --debug adder oci://ghcr.io/nunofrribeiro/devops-porto-nov/adder",
+		}).
+		WithExec([]string{
+			"bash",
+			"-c",
+			"helm install --wait --debug counter oci://ghcr.io/nunofrribeiro/devops-porto-nov/counter",
+		}).Stdout(ctx)
+}
+
+func (m *PortoMeetup) CreateCluster(ctx context.Context) *PortoMeetup {
+	kc := dag.K3S("TestCharts").Container()
+	kc = kc.WithMountedCache("/var/lib/dagger", dag.CacheVolume("varlibdagger"))
+
+	m.KCDServer = dag.K3S("TestCharts").WithContainer(kc).Server()
+	return m
+}
+
+func (m *PortoMeetup) GetConfig() *dagger.File {
+	return dag.K3S("TestCharts").Config(dagger.K3SConfigOpts{
+		Local: false,
+	})
+}
+
+func (m *PortoMeetup) KNS() *dagger.Container {
+	return dag.K3S("TestCharts").Kns().Terminal()
 }

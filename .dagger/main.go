@@ -1,8 +1,9 @@
 package main
 
 import (
-	"dagger/porto-meetup/internal/dagger"
 	"runtime"
+
+	"dagger/porto-meetup/internal/dagger"
 )
 
 type PortoMeetup struct {
@@ -14,7 +15,8 @@ type PortoMeetup struct {
 	Arch string
 	// If needed specify the OS
 	// +private
-	OS string
+	OS        string
+	KCDServer *dagger.Service
 }
 
 func New(
@@ -51,4 +53,10 @@ func New(
 		Arch:   arch,
 		OS:     os,
 	}, nil
+}
+
+func (m *PortoMeetup) KubeService() *Kube {
+	return &Kube{
+		K3s: dag.K3S("DevOpsPorto"),
+	}
 }

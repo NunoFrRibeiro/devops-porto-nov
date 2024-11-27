@@ -19,12 +19,22 @@ func TestSendAdder(t *testing.T) {
 	)
 	defer mockCounter.Close()
 
-	handler := addHandler(mockCounter.URL)
+	mockURL := mockCounter.URL
+	mockHost := strings.TrimPrefix(mockURL, "http://")
+	mockPortIndex := strings.LastIndex(mockHost, ":")
+	if mockPortIndex == -1 {
+		t.Fatal("mock server URL missing port")
+	}
+	mockHostWithoutPort := mockHost[:mockPortIndex]
+	mockPort := mockHost[mockPortIndex+1:]
+	t.Logf("Mock counter Backend URL: %s", mockURL)
 
+	counterPort = mockPort
 	req := httptest.NewRequest(http.MethodPost, "/add", nil)
+	req.Host = mockHostWithoutPort
 	w := httptest.NewRecorder()
 
-	handler(w, req)
+	addHandler(w, req)
 
 	resp := w.Result()
 	body, _ := io.ReadAll(resp.Body)
