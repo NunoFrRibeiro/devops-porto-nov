@@ -15,7 +15,8 @@ type PortoMeetup struct {
 	Arch string
 	// If needed specify the OS
 	// +private
-	OS        string
+	OS string
+	// +private
 	KCDServer *dagger.Service
 }
 
@@ -55,6 +56,8 @@ func New(
 	}, nil
 }
 
+// Creates a k3s cluster with the adder and counter deployments
+// dagger call kube-service service up
 func (m *PortoMeetup) KubeService() *Kube {
 	return &Kube{
 		K3s: dag.K3S("DevOpsPorto"),

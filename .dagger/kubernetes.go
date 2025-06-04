@@ -11,6 +11,7 @@ type Kube struct {
 	K3s *dagger.K3S
 }
 
+// Creates a k3s cluster with the adder and counter deployments
 func (k *Kube) Service(
 	ctx context.Context,
 ) (*dagger.Service, error) {
@@ -21,7 +22,7 @@ func (k *Kube) Service(
 		return nil, err
 	}
 
-	err = k.Deploy(ctx, k.K3s.Config(dagger.K3SConfigOpts{
+	err = k.deploy(ctx, k.K3s.Config(dagger.K3SConfigOpts{
 		Local: false,
 	}))
 
@@ -34,7 +35,7 @@ func (k *Kube) Service(
 		}).Service(), nil
 }
 
-func (k *Kube) Deploy(
+func (k *Kube) deploy(
 	ctx context.Context,
 	kubeConfig *dagger.File,
 ) error {
