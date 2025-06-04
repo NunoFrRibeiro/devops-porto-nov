@@ -67,6 +67,7 @@ func (m *PortoMeetup) Container(
 		WithExposedPort(port)
 }
 
+// Creates a service for a created binary
 func (m *PortoMeetup) Serve(
 	source *dagger.Directory,
 	// Port to open on container
@@ -77,6 +78,7 @@ func (m *PortoMeetup) Serve(
 	return m.Container(source, port, binaryName).AsService()
 }
 
+// Packages the Helm charts
 func (m *PortoMeetup) PackageChart(
 	// Name of chart to build a package
 	chart *dagger.Directory,

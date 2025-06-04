@@ -15,6 +15,7 @@ var (
 	GHCR          = "oci://ghcr.io/nunofrribeiro/devops-porto-nov"
 )
 
+// Runs GolangCILint for all sources
 func (m *PortoMeetup) LintAll(
 	ctx context.Context,
 ) (string, error) {
@@ -32,6 +33,7 @@ func (m *PortoMeetup) LintAll(
 	return result, nil
 }
 
+// Runs all tests
 func (m *PortoMeetup) TestAll(
 	ctx context.Context,
 ) (string, error) {
@@ -49,6 +51,7 @@ func (m *PortoMeetup) TestAll(
 	return result, nil
 }
 
+// Creates a service to test changes made
 func (m *PortoMeetup) ServeAll(
 	ctx context.Context,
 	adderPort int,
@@ -71,6 +74,7 @@ func (m *PortoMeetup) ServeAll(
 		Service()
 }
 
+// Deploys the docker images to a registry
 func (m *PortoMeetup) Deploy(
 	ctx context.Context,
 	// Infisical Auth Client ID
@@ -125,6 +129,7 @@ func (m *PortoMeetup) Deploy(
 	return result, nil
 }
 
+// Deploys the Helm Charts to the registry
 func (m *PortoMeetup) DeployCharts(
 	ctx context.Context,
 	// Infisical Auth Client ID
@@ -174,15 +179,16 @@ func (m *PortoMeetup) DeployCharts(
 	return nil
 }
 
+// Tests the Helm charts deployment to a k3s Cluster
 func (m *PortoMeetup) TestCharts(
 	ctx context.Context,
 ) (string, error) {
-	service, err := m.CreateCluster(ctx).KCDServer.Start(ctx)
+	service, err := m.createCluster(ctx).KCDServer.Start(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	kubeConfig := m.GetConfig()
+	kubeConfig := m.getConfig()
 
 	return dag.Container().From("bitnami/kubectl:1.31.0-debian-12-r4").
 		WithUser("root").
@@ -213,7 +219,7 @@ func (m *PortoMeetup) TestCharts(
 		}).Stdout(ctx)
 }
 
-func (m *PortoMeetup) CreateCluster(ctx context.Context) *PortoMeetup {
+func (m *PortoMeetup) createCluster(ctx context.Context) *PortoMeetup {
 	kc := dag.K3S("TestCharts").Container()
 	kc = kc.WithMountedCache("/var/lib/dagger", dag.CacheVolume("varlibdagger"))
 
@@ -221,12 +227,13 @@ func (m *PortoMeetup) CreateCluster(ctx context.Context) *PortoMeetup {
 	return m
 }
 
-func (m *PortoMeetup) GetConfig() *dagger.File {
+func (m *PortoMeetup) getConfig() *dagger.File {
 	return dag.K3S("TestCharts").Config(dagger.K3SConfigOpts{
 		Local: false,
 	})
 }
 
+// Deploys k9s to a already created cluster
 func (m *PortoMeetup) KNS() *dagger.Container {
 	return dag.K3S("TestCharts").Kns().Terminal()
 }
