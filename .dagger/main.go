@@ -18,6 +18,8 @@ type PortoMeetup struct {
 	OS string
 	// +private
 	KCDServer *dagger.Service
+	// +private
+	Buildcnp *dagger.Buildcnp
 }
 
 func New(
@@ -50,9 +52,10 @@ func New(
 	}
 
 	return &PortoMeetup{
-		Source: source,
-		Arch:   arch,
-		OS:     os,
+		Source:   source,
+		Arch:     arch,
+		OS:       os,
+		Buildcnp: dag.Buildcnp(source),
 	}, nil
 }
 

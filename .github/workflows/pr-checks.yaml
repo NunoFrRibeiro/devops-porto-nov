@@ -16,7 +16,7 @@ permissions:
   pull-requests: write
 
 env:
-  DAGGER_VERSION: 0.18.9
+  DAGGER_VERSION: 0.18.10
 
 jobs:
   # lint:

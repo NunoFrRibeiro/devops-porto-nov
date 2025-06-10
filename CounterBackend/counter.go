@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"text/template"
 )
@@ -33,7 +34,10 @@ func counterHandler(w http.ResponseWriter, r *http.Request) {
 	currentCount := counter
 	mutex.Unlock()
 
-	fmt.Fprintf(w, "%d", currentCount)
+	_, err := fmt.Fprintf(w, "%d", currentCount)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Write failed: %v\n", err)
+	}
 }
 
 func counterPartialHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +45,10 @@ func counterPartialHandler(w http.ResponseWriter, r *http.Request) {
 	currentCount := counter
 	mutex.Unlock()
 
-	fmt.Fprintf(w, "%d", currentCount)
+	_, err := fmt.Fprintf(w, "%d", currentCount)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Write failed: %v\n", err)
+	}
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {

@@ -6,12 +6,6 @@ import (
 	"dagger/workspace/internal/dagger"
 )
 
-type Checkable interface {
-	dagger.DaggerObject
-	CheckDirectory(ctx context.Context, source *dagger.Directory) (string, error)
-	FormatFile(source *dagger.Directory, filePath string) *dagger.Directory
-}
-
 // Place to do the work and check
 type Workspace struct {
 	Work *dagger.Directory
@@ -19,6 +13,13 @@ type Workspace struct {
 	Start *dagger.Directory
 	// +private
 	Checker Checkable
+}
+
+// Interface for something that can be checked
+type Checkable interface {
+	dagger.DaggerObject
+	CheckDirectory(ctx context.Context, source *dagger.Directory) (string, error)
+	FormatFile(source *dagger.Directory, path string) *dagger.Directory
 }
 
 func New(
@@ -60,6 +61,17 @@ func (w *Workspace) Write(
 func (w *Workspace) Reset() *Workspace {
 	w.Work = w.Start
 	return w
+}
+
+func (w *Workspace) Tree(ctx context.Context) (string, error) {
+	return dag.Container().
+		From("alpine:latest").
+		WithDirectory("/workspace", w.Work).
+		WithExec([]string{
+			"tree",
+			"/workspace",
+		}).
+		Stdout(ctx)
 }
 
 // Run tests in the workspace

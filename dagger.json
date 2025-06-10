@@ -1,14 +1,18 @@
 {
   "name": "PortoMeetup",
-  "engineVersion": "v0.18.9",
+  "engineVersion": "v0.18.10",
   "sdk": {
     "source": "go"
   },
   "dependencies": [
     {
+      "name": "buildcnp",
+      "source": ".dagger/buildcnp"
+    },
+    {
       "name": "golang",
       "source": "github.com/kpenfound/dagger-modules/golang@golang/v0.2.1",
-      "pin": "91e7b59b78c7ec0825aba8a1b2a7938e568ca569"
+      "pin": "f7964245d0146dd3810f247c6c09eb33518d4654"
     },
     {
       "name": "helm",
@@ -29,6 +33,10 @@
       "name": "proxy",
       "source": "github.com/kpenfound/dagger-modules/proxy@proxy/v0.2.4",
       "pin": "3e9985dde6f408e05e7d45e8abbae75c206af4e1"
+    },
+    {
+      "name": "workspace",
+      "source": ".dagger/workspace"
     }
   ],
   "source": ".dagger"
