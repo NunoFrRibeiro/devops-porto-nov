@@ -10,6 +10,11 @@
       "source": ".dagger/buildcnp"
     },
     {
+      "name": "github-issue",
+      "source": "github.com/kpenfound/dag/github-issue@github-issue/v2.0.0",
+      "pin": "46246adc2083c59db0076730e86b6fda2db8261a"
+    },
+    {
       "name": "golang",
       "source": "github.com/kpenfound/dagger-modules/golang@golang/v0.2.1",
       "pin": "f7964245d0146dd3810f247c6c09eb33518d4654"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"strings"
 
 	"dagger/porto-meetup/internal/dagger"
 )
@@ -28,7 +29,7 @@ func (d *PortoMeetup) DebugTests(
 			WithWorkspaceInput("workspace", workspace, "workspace to read, write and test code").
 			WithWorkspaceOutput("output", "workspace with fixes")
 
-		return dag.LLM(dagger.LLMOpts{
+		suggestion, err := dag.LLM(dagger.LLMOpts{
 			Model: model,
 		}).WithEnv(env).
 			WithPromptFile(prompt).
@@ -36,6 +37,19 @@ func (d *PortoMeetup) DebugTests(
 			Output("fixed").
 			AsWorkspace().
 			Diff(ctx)
+		if err != nil {
+			return "", err
+		}
+		markupSuggestion := ""
+		codeSuggestions := parseDiff(suggestion)
+		for _, codeSuggestion := range codeSuggestions {
+			markupSuggestion = "```suggestion\n" + strings.Join(
+				codeSuggestion.Suggestion,
+				"\n",
+			) + "\n```"
+		}
+
+		return markupSuggestion, nil
 	}
 
 	if _, adderErr := d.Buildcnp.CheckDirectory(ctx, d.Source.Directory("AdderBackend")); adderErr != nil {
@@ -48,7 +62,7 @@ func (d *PortoMeetup) DebugTests(
 			WithWorkspaceInput("workspace", workspace, "workspace to read, write and test code").
 			WithWorkspaceOutput("output", "workspace with fixes")
 
-		return dag.LLM(dagger.LLMOpts{
+		suggestion, err := dag.LLM(dagger.LLMOpts{
 			Model: model,
 		}).WithEnv(env).
 			WithPromptFile(prompt).
@@ -56,7 +70,73 @@ func (d *PortoMeetup) DebugTests(
 			Output("fixed").
 			AsWorkspace().
 			Diff(ctx)
+		if err != nil {
+			return "", err
+		}
+		markupSuggestion := ""
+		codeSuggestions := parseDiff(suggestion)
+		for _, codeSuggestion := range codeSuggestions {
+			markupSuggestion = "```suggestion\n" + strings.Join(
+				codeSuggestion.Suggestion,
+				"\n",
+			) + "\n```"
+		}
+
+		return markupSuggestion, nil
 	}
 
 	return "Nothing broken was found", nil
+}
+
+func (d *PortoMeetup) DebugTestsPR(
+	ctx context.Context,
+	// Token with permissions to comment on PR
+	githubToken *dagger.Secret,
+	// GitHub git commit
+	commit string,
+	// LLM model used to debug tests
+	// *optional
+	// +default="gemini-2.0-flash"
+	model string,
+) error {
+	githubIssue := dag.GithubIssue(dagger.GithubIssueOpts{
+		Token: githubToken,
+	})
+	gitRef := dag.Git(GH_REPO).Commit(commit)
+	gitSource := gitRef.Tree()
+	pr, err := githubIssue.GetPrForCommit(ctx, GH_REPO, commit)
+	if err != nil {
+		return err
+	}
+
+	d, err = New(gitSource, "", "", "")
+	if err != nil {
+		return err
+	}
+
+	suggestionDiff, err := d.DebugTests(ctx, model)
+	if err != nil {
+		return err
+	}
+	codeSuggestions := parseDiff(suggestionDiff)
+	for _, codeSuggestion := range codeSuggestions {
+		markupSuggestion := "```suggestion\n" + strings.Join(
+			codeSuggestion.Suggestion,
+			"\n",
+		) + "\n```"
+		err := githubIssue.WritePullRequestCodeComment(
+			ctx,
+			GH_REPO,
+			pr,
+			commit,
+			markupSuggestion,
+			codeSuggestion.File,
+			"RIGHT",
+			codeSuggestion.Line,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -16,7 +16,7 @@ var (
 )
 
 // Runs GolangCILint for all sources
-func (m *PortoMeetup) LintAll(
+func (m *PortoMeetup) Lint(
 	ctx context.Context,
 ) (string, error) {
 	adderResult, error := m.Buildcnp.Lint(ctx, m.Source.Directory("AdderBackend"))
@@ -34,7 +34,7 @@ func (m *PortoMeetup) LintAll(
 }
 
 // Runs all tests
-func (m *PortoMeetup) TestAll(
+func (m *PortoMeetup) Test(
 	ctx context.Context,
 ) (string, error) {
 	adderResult, err := m.Buildcnp.UnitTests(ctx, m.Source.Directory("AdderBackend"))
@@ -50,6 +50,19 @@ func (m *PortoMeetup) TestAll(
 	result := adderResult + "\n" + counterResult
 	return result, nil
 }
+
+// func (m *PortoMeetup) Check(
+// 	ctx context.Context,
+// 	// Token with permissions to comment on PR
+// 	githubToken *dagger.Secret,
+// 	// GitHub git commit
+// 	commit string,
+// 	// LLM model used to debug tests
+// 	// *optional
+// 	// +default="gemini-2.0-flash"
+// 	model string,
+// ) (string, error) {
+// }
 
 // Creates a service to test changes made
 func (m *PortoMeetup) ServeAll(
