@@ -19,14 +19,12 @@ var (
 func (m *PortoMeetup) LintAll(
 	ctx context.Context,
 ) (string, error) {
-	m.Source = m.Source.Directory("AdderBackend")
-	adderResult, error := m.Buildcnp.Lint(ctx)
+	adderResult, error := m.Buildcnp.Lint(ctx, m.Source.Directory("AdderBackend"))
 	if error != nil {
 		return "", error
 	}
 
-	m.Source = m.Source.Directory("CounterBackend")
-	counterResult, error := m.Buildcnp.Lint(ctx)
+	counterResult, error := m.Buildcnp.Lint(ctx, m.Source.Directory("CounterBackend"))
 	if error != nil {
 		return "", error
 	}
@@ -39,14 +37,12 @@ func (m *PortoMeetup) LintAll(
 func (m *PortoMeetup) TestAll(
 	ctx context.Context,
 ) (string, error) {
-	m.Source = m.Source.Directory("AdderBackend")
-	adderResult, err := m.Buildcnp.UnitTests(ctx)
+	adderResult, err := m.Buildcnp.UnitTests(ctx, m.Source.Directory("AdderBackend"))
 	if err != nil {
 		return "", err
 	}
 
-	m.Source = m.Source.Directory("CounterBackend")
-	counterResult, err := m.Buildcnp.UnitTests(ctx)
+	counterResult, err := m.Buildcnp.UnitTests(ctx, m.Source.Directory("CounterBackend"))
 	if err != nil {
 		return "", err
 	}
@@ -208,16 +204,16 @@ func (m *PortoMeetup) TestCharts(
 
 	return dag.Container().From("bitnami/kubectl:1.31.0-debian-12-r4").
 		WithUser("root").
-		WithServiceBinding("k3scluster", service).
-		WithFile("/.kube/config", kubeConfig).
-		WithEnvVariable("KUBECONFIG", "/.kube/config").
-		WithExec([]string{"chown", "1001:0", "/.kube/config"}).
 		WithExec([]string{
 			"bash",
 			"-c",
 			"apt update && apt install -y curl",
 		}).
 		WithDirectory("/demo", m.Source).
+		WithServiceBinding("k3scluster", service).
+		WithFile("/.kube/config", kubeConfig).
+		WithEnvVariable("KUBECONFIG", "/.kube/config").
+		WithExec([]string{"chown", "1001:0", "/.kube/config"}).
 		WithExec([]string{
 			"bash",
 			"-c",

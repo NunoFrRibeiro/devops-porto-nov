@@ -23,18 +23,20 @@ func New(
 // Run the projects unit tests
 func (m *Buildcnp) UnitTests(
 	ctx context.Context,
+	source *dagger.Directory,
 ) (string, error) {
 	return dag.Golang().
-		WithSource(m.Source).
+		WithSource(source).
 		Test(ctx)
 }
 
 // Runs GolangCILint against the source
 func (m *Buildcnp) Lint(
 	ctx context.Context,
+	source *dagger.Directory,
 ) (string, error) {
 	return dag.Golang().
-		WithSource(m.Source).
+		WithSource(source).
 		GolangciLint(ctx)
 }
 
@@ -49,12 +51,13 @@ func (m *Buildcnp) Format() *dagger.Directory {
 // Checker
 func (m *Buildcnp) Check(
 	ctx context.Context,
+	source *dagger.Directory,
 ) (string, error) {
-	lint, err := m.Lint(ctx)
+	lint, err := m.Lint(ctx, source)
 	if err != nil {
 		return "", err
 	}
-	test, err := m.UnitTests(ctx)
+	test, err := m.UnitTests(ctx, source)
 	if err != nil {
 		return "", fmt.Errorf("Error is: %v", err)
 	}
@@ -137,8 +140,8 @@ func (m *Buildcnp) CheckDirectory(
 	// Directory to run checks on
 	source *dagger.Directory,
 ) (string, error) {
-	m.Source = source
-	return m.Check(ctx)
+	// m.Source = source
+	return m.Check(ctx, source)
 }
 
 // Stateless formatter
