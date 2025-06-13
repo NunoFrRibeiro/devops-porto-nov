@@ -16,15 +16,15 @@ var (
 )
 
 // Runs GolangCILint for all sources
-func (m *PortoMeetup) LintAll(
+func (m *PortoMeetup) Lint(
 	ctx context.Context,
 ) (string, error) {
-	adderResult, error := m.Lint(ctx, m.Source.Directory("AdderBackend"))
+	adderResult, error := m.Buildcnp.Lint(ctx, m.Source.Directory("AdderBackend"))
 	if error != nil {
 		return "", error
 	}
 
-	counterResult, error := m.Lint(ctx, m.Source.Directory("CounterBackend"))
+	counterResult, error := m.Buildcnp.Lint(ctx, m.Source.Directory("CounterBackend"))
 	if error != nil {
 		return "", error
 	}
@@ -34,15 +34,15 @@ func (m *PortoMeetup) LintAll(
 }
 
 // Runs all tests
-func (m *PortoMeetup) TestAll(
+func (m *PortoMeetup) Test(
 	ctx context.Context,
 ) (string, error) {
-	adderResult, err := m.UnitTests(ctx, m.Source.Directory("AdderBackend"))
+	adderResult, err := m.Buildcnp.UnitTests(ctx, m.Source.Directory("AdderBackend"))
 	if err != nil {
 		return "", err
 	}
 
-	counterResult, err := m.UnitTests(ctx, m.Source.Directory("CounterBackend"))
+	counterResult, err := m.Buildcnp.UnitTests(ctx, m.Source.Directory("CounterBackend"))
 	if err != nil {
 		return "", err
 	}
@@ -51,6 +51,19 @@ func (m *PortoMeetup) TestAll(
 	return result, nil
 }
 
+// func (m *PortoMeetup) Check(
+// 	ctx context.Context,
+// 	// Token with permissions to comment on PR
+// 	githubToken *dagger.Secret,
+// 	// GitHub git commit
+// 	commit string,
+// 	// LLM model used to debug tests
+// 	// *optional
+// 	// +default="gemini-2.0-flash"
+// 	model string,
+// ) (string, error) {
+// }
+
 // Creates a service to test changes made
 func (m *PortoMeetup) ServeAll(
 	ctx context.Context,
@@ -58,10 +71,11 @@ func (m *PortoMeetup) ServeAll(
 	counterPort int,
 ) *dagger.Service {
 	adderSource := m.Source.Directory("AdderBackend")
-	adderAsService := m.Serve(adderSource, adderPort, "AdderBackend").WithHostname("AdderBackend")
+	adderAsService := m.Buildcnp.Serve(adderSource, adderPort, "AdderBackend", m.Arch).
+		WithHostname("AdderBackend")
 
 	counterSource := m.Source.Directory("CounterBackend")
-	counterAsService := m.Serve(counterSource, counterPort, "CounterBackend").
+	counterAsService := m.Buildcnp.Serve(counterSource, counterPort, "CounterBackend", m.Arch).
 		WithHostname("CounterBackend")
 
 	return dag.Proxy().
@@ -103,7 +117,11 @@ func (m *PortoMeetup) Deploy(
 				SecretPath: "/",
 			})
 
-		counterImage := m.Container(m.Source.Directory("CounterBackend"), 8081, "CounterBackend")
+		counterImage := m.Buildcnp.Container(
+			m.Source.Directory("CounterBackend"),
+			8081,
+			"CounterBackend",
+		)
 		counterResult, err := dag.Container().
 			WithRegistryAuth(DH_REPO, registryUser, registryPass).
 			Publish(ctx, COUNTER_IMAGE, dagger.ContainerPublishOpts{
@@ -112,7 +130,7 @@ func (m *PortoMeetup) Deploy(
 				},
 			})
 
-		adderImage := m.Container(m.Source.Directory("AdderBackend"), 8080, "AdderBackend")
+		adderImage := m.Buildcnp.Container(m.Source.Directory("AdderBackend"), 8080, "AdderBackend")
 		adderResult, err := dag.Container().
 			WithRegistryAuth(DH_REPO, registryUser, registryPass).
 			Publish(ctx, ADDER_IMAGE, dagger.ContainerPublishOpts{
@@ -158,7 +176,12 @@ func (m *PortoMeetup) DeployCharts(
 			})
 
 		counterChartDirectory := m.Source.Directory("helm/charts/counter")
-		counterChart := m.PackageChart(counterChartDirectory, "0.1.0")
+		counterChart := m.Buildcnp.PackageChart(
+			counterChartDirectory,
+			dagger.BuildcnpPackageChartOpts{
+				Version: "0.1.0",
+			},
+		)
 		err = dag.Helm().
 			WithRegistryAuth("ghcr.io", registryUser, registryPass).
 			Push(ctx, counterChart, GHCR)
@@ -167,7 +190,9 @@ func (m *PortoMeetup) DeployCharts(
 		}
 
 		adderChartDirectory := m.Source.Directory("helm/charts/adder")
-		adderChart := m.PackageChart(adderChartDirectory, "0.1.0")
+		adderChart := m.Buildcnp.PackageChart(adderChartDirectory, dagger.BuildcnpPackageChartOpts{
+			Version: "0.1.0",
+		})
 		err = dag.Helm().
 			WithRegistryAuth("ghcr.io", registryUser, registryPass).
 			Push(ctx, adderChart, GHCR)
@@ -183,7 +208,7 @@ func (m *PortoMeetup) DeployCharts(
 func (m *PortoMeetup) TestCharts(
 	ctx context.Context,
 ) (string, error) {
-	service, err := m.createCluster(ctx).KCDServer.Start(ctx)
+	service, err := m.createCluster().KCDServer.Start(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -192,16 +217,16 @@ func (m *PortoMeetup) TestCharts(
 
 	return dag.Container().From("bitnami/kubectl:1.31.0-debian-12-r4").
 		WithUser("root").
-		WithServiceBinding("k3scluster", service).
-		WithFile("/.kube/config", kubeConfig).
-		WithEnvVariable("KUBECONFIG", "/.kube/config").
-		WithExec([]string{"chown", "1001:0", "/.kube/config"}).
 		WithExec([]string{
 			"bash",
 			"-c",
 			"apt update && apt install -y curl",
 		}).
 		WithDirectory("/demo", m.Source).
+		WithServiceBinding("k3scluster", service).
+		WithFile("/.kube/config", kubeConfig).
+		WithEnvVariable("KUBECONFIG", "/.kube/config").
+		WithExec([]string{"chown", "1001:0", "/.kube/config"}).
 		WithExec([]string{
 			"bash",
 			"-c",
@@ -219,7 +244,7 @@ func (m *PortoMeetup) TestCharts(
 		}).Stdout(ctx)
 }
 
-func (m *PortoMeetup) createCluster(ctx context.Context) *PortoMeetup {
+func (m *PortoMeetup) createCluster() *PortoMeetup {
 	kc := dag.K3S("TestCharts").Container()
 	kc = kc.WithMountedCache("/var/lib/dagger", dag.CacheVolume("varlibdagger"))
 

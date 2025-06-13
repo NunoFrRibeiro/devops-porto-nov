@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 )
 
 var (
@@ -35,10 +36,16 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error contacting counter backend: ", err)
 		return
 	}
-	defer resp.Body.Close()
+	err = resp.Body.Close()
+	if err != nil {
+		log.Panic()
+	}
 
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "Increment sent to counter backend.")
+	_, err = fmt.Fprintln(w, "Increment sent to counter backend.")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Write failed: %v\n", err)
+	}
 }
 
 func getHostWithoutPort(host string) string {

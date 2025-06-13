@@ -1,0 +1,19 @@
+{
+  "name": "buildcnp",
+  "engineVersion": "v0.18.10",
+  "sdk": {
+    "source": "go"
+  },
+  "dependencies": [
+    {
+      "name": "golang",
+      "source": "github.com/kpenfound/dagger-modules/golang@f7964245d0146dd3810f247c6c09eb33518d4654",
+      "pin": "f7964245d0146dd3810f247c6c09eb33518d4654"
+    },
+    {
+      "name": "helm",
+      "source": "github.com/sagikazarmark/daggerverse/helm@helm/v0.13.0",
+      "pin": "126b5fbbdad70dbf2a8689600baec2eb78c05ef4"
+    }
+  ]
+}
