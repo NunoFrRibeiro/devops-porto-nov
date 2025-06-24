@@ -8,7 +8,7 @@ import (
 )
 
 // Debug broken tests
-func (d *PortoMeetup) DebugTests(
+func (d *PortoMeetup) DebugLocal(
 	ctx context.Context,
 	// LLM model used to debug tests
 	// *optional
@@ -88,7 +88,7 @@ func (d *PortoMeetup) DebugTests(
 	return "Nothing broken was found", nil
 }
 
-func (d *PortoMeetup) DebugTestsPR(
+func (d *PortoMeetup) DebugPR(
 	ctx context.Context,
 	// Token with permissions to comment on PR
 	githubToken *dagger.Secret,
@@ -114,7 +114,7 @@ func (d *PortoMeetup) DebugTestsPR(
 		return err
 	}
 
-	suggestionDiff, err := d.DebugTests(ctx, model)
+	suggestionDiff, err := d.DebugLocal(ctx, model)
 	if err != nil {
 		return err
 	}

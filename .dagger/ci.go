@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"dagger/porto-meetup/internal/dagger"
 )
@@ -51,18 +52,37 @@ func (m *PortoMeetup) Test(
 	return result, nil
 }
 
-// func (m *PortoMeetup) Check(
-// 	ctx context.Context,
-// 	// Token with permissions to comment on PR
-// 	githubToken *dagger.Secret,
-// 	// GitHub git commit
-// 	commit string,
-// 	// LLM model used to debug tests
-// 	// *optional
-// 	// +default="gemini-2.0-flash"
-// 	model string,
-// ) (string, error) {
-// }
+func (m *PortoMeetup) Check(
+	ctx context.Context,
+	// Token with permissions to comment on PR
+	githubToken *dagger.Secret,
+	// GitHub git commit
+	commit string,
+	// LLM model used to debug tests
+	// *optional
+	// +default="gemini-2.0-flash"
+	model string,
+) (string, error) {
+	lintResult, err := m.Lint(ctx)
+	if err != nil {
+		if githubToken != nil {
+			debugPr := m.DebugPR(ctx, githubToken, commit, model)
+			return "", fmt.Errorf("failed to lint.\nrunning debugger for %v %v", err, debugPr)
+		}
+		return "", err
+	}
+
+	testResult, err := m.Test(ctx)
+	if err != nil {
+		if githubToken != nil {
+			debugPr := m.DebugPR(ctx, githubToken, commit, model)
+			return "", fmt.Errorf("failed to lint.\nrunning debugger for %v %v", err, debugPr)
+		}
+		return "", err
+	}
+
+	return fmt.Sprintf("lint result: %s\ntest result: %s\n", lintResult, testResult), nil
+}
 
 // Creates a service to test changes made
 func (m *PortoMeetup) ServeAll(

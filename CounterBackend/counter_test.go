@@ -33,7 +33,7 @@ func TestCounterHandler(t *testing.T) {
 
 func TestCounterPartialHandler(t *testing.T) {
 	mutex.Lock()
-	counter = 5
+	counter = 4
 	mutex.Unlock()
 
 	req := httptest.NewRequest(http.MethodGet, "/counter", nil)
