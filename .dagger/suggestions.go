@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -20,55 +20,47 @@ func parseDiff(diffText string) []CodeSuggestion {
 	var newCode []string
 	removalReached := false
 
-	// Regular expressions for file detection and line number parsing
-	fileRegex := regexp.MustCompile(`^\+\+\+ b/(.+)`)
-	lineRegex := regexp.MustCompile(`^@@ .* \+(\d+),?`)
-
-	scanner := bufio.NewScanner(strings.NewReader(diffText))
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		// Detect file name
-		if matches := fileRegex.FindStringSubmatch(line); matches != nil {
-			currentFile = matches[1]
+	lines := strings.Split(diffText, "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "---") {
 			continue
-		}
+		} else if strings.HasPrefix(line, "+++") {
+			currentFile = strings.TrimPrefix(line, "+++ /b/")
+		} else if strings.HasPrefix(line, "@@") {
+			re := regexp.MustCompile(`@@ -\d+,\d+ \+(\d+),\d+ @@`)
+			match := re.FindStringSubmatch(line)
+			if len(match) > 1 {
+				lineNumber, err := strconv.Atoi(match[1])
+				if err != nil {
+					fmt.Println("Error converting line number:", err)
+					continue
+				}
+				currentLine = lineNumber
+				newCode = []string{}
+				removalReached = false
+			}
 
-		// Detect modified line number in the new file
-		if matches := lineRegex.FindStringSubmatch(line); matches != nil {
-			currentLine = atoi(matches[1]) - 1 // Convert to 0-based index for tracking
-			newCode = []string{}               // Reset new code buffer
-			removalReached = false
-			continue
-		}
-
-		// Extract new code (ignoring metadata lines)
-		if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
-			newCode = append(newCode, line[1:]) // Remove `+`
-			continue
-		}
-
-		if !removalReached {
-			currentLine++ // Track line modifications
-		}
-
-		// If a removed line (`-`) appears after `+` lines, store the suggestion
-		if strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---") {
-			if len(newCode) > 0 && currentFile != "" {
+		} else if strings.HasPrefix(line, "-") {
+			removalReached = true
+		} else if strings.HasPrefix(line, "+") {
+			if currentFile != "" && currentLine != 0 {
+				newCode = append(newCode, strings.TrimPrefix(line, "+"))
+			}
+		} else {
+			if removalReached && len(newCode) > 0 && currentFile != "" && currentLine != 0 {
 				suggestions = append(suggestions, CodeSuggestion{
 					File:       currentFile,
 					Line:       currentLine,
 					Suggestion: newCode,
 				})
-				newCode = []string{} // Reset new code buffer
+				newCode = []string{}
+				removalReached = false
 			}
-			removalReached = true
+			currentLine++
 		}
-
 	}
 
-	// If there's a pending multi-line suggestion, add it
-	if len(newCode) > 0 && currentFile != "" {
+	if removalReached && len(newCode) > 0 && currentFile != "" && currentLine != 0 {
 		suggestions = append(suggestions, CodeSuggestion{
 			File:       currentFile,
 			Line:       currentLine,
@@ -77,11 +69,4 @@ func parseDiff(diffText string) []CodeSuggestion {
 	}
 
 	return suggestions
-}
-
-// Helper function to convert string to int safely
-func atoi(s string) int {
-	var i int
-	fmt.Sscanf(s, "%d", &i)
-	return i
 }
