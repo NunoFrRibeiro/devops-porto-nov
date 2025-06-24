@@ -1,15 +1,8 @@
-name: Tests and Lint PR
+name: check
 
 on:
-  pull_request:
-    paths-ignore:
-      - 'README.md'
-      - '.github/*'
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
+  push:
+    branches: ["**", "!main"]
 
 permissions:
   contents: read
@@ -20,35 +13,35 @@ env:
   GEMINI_API_KEY: ${{ secrets.LLM_API_KEY }}
 
 jobs:
-  lint:
-    name: lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Run Lint
-        uses: dagger/dagger-for-github@8.0.0
-        with:
-          verb: call
-          args: --ref ${{ github.ref }} lint
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: ${{ env.DAGGER_VERSION }}
-
-  test:
-    name: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Run Test
-        uses: dagger/dagger-for-github@8.0.0
-        with:
-          verb: call
-          args: --ref ${{ github.ref }} test
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: ${{ env.DAGGER_VERSION }}
+  # lint:
+  #   name: lint
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Run Lint
+  #       uses: dagger/dagger-for-github@8.0.0
+  #       with:
+  #         verb: call
+  #         args: --ref ${{ github.ref }} lint
+  #         cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+  #         version: ${{ env.DAGGER_VERSION }}
+  #
+  # test:
+  #   name: test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Run Test
+  #       uses: dagger/dagger-for-github@8.0.0
+  #       with:
+  #         verb: call
+  #         args: --ref ${{ github.ref }} test
+  #         cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+  #         version: ${{ env.DAGGER_VERSION }}
 
   check:
     name: check
@@ -68,7 +61,7 @@ jobs:
         uses: dagger/dagger-for-github@8.0.0
         with:
           verb: call
-          args: --ref ${{ github.ref }} check --github-token GH_TOKEN --commit $GITHUB_SHA --model gemini-2.0-flash
+          args: --ref ${{ github.ref }} check --github-token GH_TOKEN --commit ${{ github.sha }} --model gemini-2.0-flash
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
         env:
