@@ -76,7 +76,7 @@ func (m *PortoMeetup) Check(
 	if err != nil {
 		if githubToken != nil {
 			debugPr := m.DebugPR(ctx, githubToken, commit, model)
-			return "", fmt.Errorf("failed to lint.\nrunning debugger for %v %v", err, debugPr)
+			return "", fmt.Errorf("failed to test.\nrunning debugger for %v %v", err, debugPr)
 		}
 		return "", err
 	}

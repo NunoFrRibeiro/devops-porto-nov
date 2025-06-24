@@ -20,39 +20,34 @@ func parseDiff(diffText string) []CodeSuggestion {
 	var newCode []string
 	removalReached := false
 
-	// Regular expressions for file detection and line number parsing
-	fileRegex := regexp.MustCompile(`^\+\+\+ b/(.+)`)
+	fileRegex := regexp.MustCompile(`^\+\+\+ /?b/(.+)`)
 	lineRegex := regexp.MustCompile(`^@@ .* \+(\d+),?`)
 
 	scanner := bufio.NewScanner(strings.NewReader(diffText))
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// Detect file name
 		if matches := fileRegex.FindStringSubmatch(line); matches != nil {
 			currentFile = matches[1]
 			continue
 		}
 
-		// Detect modified line number in the new file
 		if matches := lineRegex.FindStringSubmatch(line); matches != nil {
-			currentLine = atoi(matches[1]) - 1 // Convert to 0-based index for tracking
-			newCode = []string{}               // Reset new code buffer
+			currentLine = atoi(matches[1]) - 1
+			newCode = []string{}
 			removalReached = false
 			continue
 		}
 
-		// Extract new code (ignoring metadata lines)
 		if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
 			newCode = append(newCode, line[1:]) // Remove `+`
 			continue
 		}
 
 		if !removalReached {
-			currentLine++ // Track line modifications
+			currentLine++
 		}
 
-		// If a removed line (`-`) appears after `+` lines, store the suggestion
 		if strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---") {
 			if len(newCode) > 0 && currentFile != "" {
 				suggestions = append(suggestions, CodeSuggestion{
@@ -60,14 +55,13 @@ func parseDiff(diffText string) []CodeSuggestion {
 					Line:       currentLine,
 					Suggestion: newCode,
 				})
-				newCode = []string{} // Reset new code buffer
+				newCode = []string{}
 			}
 			removalReached = true
 		}
 
 	}
 
-	// If there's a pending multi-line suggestion, add it
 	if len(newCode) > 0 && currentFile != "" {
 		suggestions = append(suggestions, CodeSuggestion{
 			File:       currentFile,
@@ -79,9 +73,23 @@ func parseDiff(diffText string) []CodeSuggestion {
 	return suggestions
 }
 
-// Helper function to convert string to int safely
 func atoi(s string) int {
 	var i int
 	fmt.Sscanf(s, "%d", &i)
 	return i
+}
+
+func determineProjectBasePath(filenameFromDiff string) string {
+	if strings.Contains(strings.ToLower(filenameFromDiff), "counter") {
+		return "CounterBackend" // No trailing slash needed here for filepath.Join
+	}
+	if strings.Contains(strings.ToLower(filenameFromDiff), "adder") {
+		return "AdderBackend"
+	}
+
+	fmt.Printf(
+		"Warning: Could not determine project base path for file '%s'. Assuming repo root.\n",
+		filenameFromDiff,
+	)
+	return ""
 }

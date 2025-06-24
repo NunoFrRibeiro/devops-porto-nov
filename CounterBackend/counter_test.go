@@ -33,7 +33,7 @@ func TestCounterHandler(t *testing.T) {
 
 func TestCounterPartialHandler(t *testing.T) {
 	mutex.Lock()
-	counter = 4
+	counter = 5
 	mutex.Unlock()
 
 	req := httptest.NewRequest(http.MethodGet, "/counter", nil)
@@ -51,7 +51,7 @@ func TestCounterPartialHandler(t *testing.T) {
 		t.Fatalf("expected status OK, got: %v", resp.Status)
 	}
 
-	expected := "5"
+	expected := "4"
 	if string(body) != expected {
 		t.Fatalf("expected body to be '%s', got: '%s'", expected, body)
 	}
