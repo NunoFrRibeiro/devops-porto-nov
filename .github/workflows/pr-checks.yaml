@@ -36,4 +36,3 @@ jobs:
           version: ${{ env.DAGGER_VERSION }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-
