@@ -82,13 +82,13 @@ func (w *Workspace) Check(ctx context.Context) (string, error) {
 // Display the diff made in the Workspace
 func (w *Workspace) Diff(ctx context.Context) (string, error) {
 	return dag.Container().From("alpine").
-		WithDirectory("/start", w.Start).
-		WithDirectory("/finish", w.Work).
+		WithDirectory("/a", w.Start).
+		WithDirectory("/b", w.Work).
 		WithExec([]string{
 			"diff",
 			"-rN",
-			"/start",
-			"/finish",
+			"/a",
+			"/b",
 		}, dagger.ContainerWithExecOpts{
 			Expect: dagger.ReturnTypeAny,
 		}).Stdout(ctx)

@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"dagger/porto-meetup/internal/dagger"
 )
 
 // Debug broken tests
-func (d *PortoMeetup) DebugTests(
+func (d *PortoMeetup) DebugLocal(
 	ctx context.Context,
 	// LLM model used to debug tests
 	// *optional
@@ -19,6 +20,7 @@ func (d *PortoMeetup) DebugTests(
 		Source().
 		File("prompts/fix_tests.md")
 
+	// check if CounterBackend is broken
 	if _, counterErr := d.Buildcnp.CheckDirectory(ctx, d.Source.Directory("CounterBackend")); counterErr != nil {
 		workspace := dag.Workspace(
 			d.Source.Directory("CounterBackend"),
@@ -26,10 +28,10 @@ func (d *PortoMeetup) DebugTests(
 		)
 
 		env := dag.Env().
-			WithWorkspaceInput("workspace", workspace, "workspace to read, write and test code").
-			WithWorkspaceOutput("output", "workspace with fixes")
+			WithWorkspaceInput("workspace", workspace, "workspace to read, write and test the CounterBackend code").
+			WithWorkspaceOutput("fixed", "workspace with fixes")
 
-		suggestion, err := dag.LLM(dagger.LLMOpts{
+		return dag.LLM(dagger.LLMOpts{
 			Model: model,
 		}).WithEnv(env).
 			WithPromptFile(prompt).
@@ -37,21 +39,9 @@ func (d *PortoMeetup) DebugTests(
 			Output("fixed").
 			AsWorkspace().
 			Diff(ctx)
-		if err != nil {
-			return "", err
-		}
-		markupSuggestion := ""
-		codeSuggestions := parseDiff(suggestion)
-		for _, codeSuggestion := range codeSuggestions {
-			markupSuggestion = "```suggestion\n" + strings.Join(
-				codeSuggestion.Suggestion,
-				"\n",
-			) + "\n```"
-		}
-
-		return markupSuggestion, nil
 	}
 
+	// check if AdderBackend is broken
 	if _, adderErr := d.Buildcnp.CheckDirectory(ctx, d.Source.Directory("AdderBackend")); adderErr != nil {
 		workspace := dag.Workspace(
 			d.Source.Directory("AdderBackend"),
@@ -59,10 +49,10 @@ func (d *PortoMeetup) DebugTests(
 		)
 
 		env := dag.Env().
-			WithWorkspaceInput("workspace", workspace, "workspace to read, write and test code").
-			WithWorkspaceOutput("output", "workspace with fixes")
+			WithWorkspaceInput("workspace", workspace, "workspace to read, write and test the AdderBackend code").
+			WithWorkspaceOutput("fixed", "workspace with fixes")
 
-		suggestion, err := dag.LLM(dagger.LLMOpts{
+		return dag.LLM(dagger.LLMOpts{
 			Model: model,
 		}).WithEnv(env).
 			WithPromptFile(prompt).
@@ -70,25 +60,12 @@ func (d *PortoMeetup) DebugTests(
 			Output("fixed").
 			AsWorkspace().
 			Diff(ctx)
-		if err != nil {
-			return "", err
-		}
-		markupSuggestion := ""
-		codeSuggestions := parseDiff(suggestion)
-		for _, codeSuggestion := range codeSuggestions {
-			markupSuggestion = "```suggestion\n" + strings.Join(
-				codeSuggestion.Suggestion,
-				"\n",
-			) + "\n```"
-		}
-
-		return markupSuggestion, nil
 	}
 
-	return "Nothing broken was found", nil
+	return "", fmt.Errorf("Nothing broken was found")
 }
 
-func (d *PortoMeetup) DebugTestsPR(
+func (d *PortoMeetup) DebugPR(
 	ctx context.Context,
 	// Token with permissions to comment on PR
 	githubToken *dagger.Secret,
@@ -109,31 +86,37 @@ func (d *PortoMeetup) DebugTestsPR(
 		return err
 	}
 
-	d, err = New(gitSource, "", "", "")
+	d, err = New(gitSource, GH_REPO, "", "")
 	if err != nil {
 		return err
 	}
 
-	suggestionDiff, err := d.DebugTests(ctx, model)
+	suggestionDiff, err := d.DebugLocal(ctx, model)
 	if err != nil {
 		return err
 	}
+
+	if suggestionDiff == "" {
+		return fmt.Errorf("no suggestions found")
+	}
 	codeSuggestions := parseDiff(suggestionDiff)
+
 	for _, codeSuggestion := range codeSuggestions {
 		markupSuggestion := "```suggestion\n" + strings.Join(
 			codeSuggestion.Suggestion,
 			"\n",
 		) + "\n```"
-		err := githubIssue.WritePullRequestCodeComment(
-			ctx,
-			GH_REPO,
-			pr,
-			commit,
-			markupSuggestion,
-			codeSuggestion.File,
-			"RIGHT",
-			codeSuggestion.Line,
-		)
+		err := githubIssue.WriteComment(ctx, GH_REPO, pr, markupSuggestion)
+		// err := githubIssue.WritePullRequestCodeComment(
+		// 	ctx,
+		// 	GH_REPO,
+		// 	pr,
+		// 	commit,
+		// 	markupSuggestion,
+		// 	codeSuggestion.File,
+		// 	"RIGHT",
+		// 	codeSuggestion.Line,
+		// )
 		if err != nil {
 			return err
 		}
