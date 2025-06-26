@@ -52,6 +52,7 @@ func (m *PortoMeetup) Test(
 	return result, nil
 }
 
+// Run ci-check
 func (m *PortoMeetup) Check(
 	ctx context.Context,
 	// Token with permissions to comment on PR

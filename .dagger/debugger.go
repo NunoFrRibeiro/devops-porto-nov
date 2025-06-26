@@ -9,7 +9,7 @@ import (
 	"dagger/porto-meetup/internal/dagger"
 )
 
-// Debug broken tests
+// Debug locallly
 func (d *PortoMeetup) DebugLocal(
 	ctx context.Context,
 	// LLM model used to debug tests
@@ -66,6 +66,7 @@ func (d *PortoMeetup) DebugLocal(
 	return "", fmt.Errorf("Nothing broken was found")
 }
 
+// Debug PR
 func (d *PortoMeetup) DebugPR(
 	ctx context.Context,
 	// Token with permissions to comment on PR
@@ -144,3 +145,4 @@ func (d *PortoMeetup) DebugPR(
 	}
 	return nil
 }
+
