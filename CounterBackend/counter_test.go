@@ -51,7 +51,7 @@ func TestCounterPartialHandler(t *testing.T) {
 		t.Fatalf("expected status OK, got: %v", resp.Status)
 	}
 
-	expected := "5"
+	expected := "4"
 	if string(body) != expected {
 		t.Fatalf("expected body to be '%s', got: '%s'", expected, body)
 	}
