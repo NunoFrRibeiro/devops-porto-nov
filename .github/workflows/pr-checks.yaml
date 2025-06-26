@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 env:
-  DAGGER_VERSION: 0.18.10
+  DAGGER_VERSION: 0.18.11
   GEMINI_API_KEY: ${{ secrets.LLM_API_KEY }}
 
 jobs:
@@ -31,9 +31,8 @@ jobs:
         uses: dagger/dagger-for-github@8.0.0
         with:
           verb: call
-          args: --ref ${{ github.ref }} check --github-token GH_TOKEN --commit ${{ github.sha }} --model gemini-2.5-flash
+          args: --ref ${{ github.ref }} check --github-token GH_TOKEN --commit ${{ github.sha }} --model gemini-2.5-flash-lite-preview-06-17
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-

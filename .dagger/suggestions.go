@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -20,47 +20,49 @@ func parseDiff(diffText string) []CodeSuggestion {
 	var newCode []string
 	removalReached := false
 
-	lines := strings.Split(diffText, "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "---") {
-			continue
-		} else if strings.HasPrefix(line, "+++") {
-			currentFile = strings.TrimPrefix(line, "+++ /b/")
-		} else if strings.HasPrefix(line, "@@") {
-			re := regexp.MustCompile(`@@ -\d+,\d+ \+(\d+),\d+ @@`)
-			match := re.FindStringSubmatch(line)
-			if len(match) > 1 {
-				lineNumber, err := strconv.Atoi(match[1])
-				if err != nil {
-					fmt.Println("Error converting line number:", err)
-					continue
-				}
-				currentLine = lineNumber
-				newCode = []string{}
-				removalReached = false
-			}
+	fileRegex := regexp.MustCompile(`^\+\+\+ /?b/(.+)`)
+	lineRegex := regexp.MustCompile(`^@@ .* \+(\d+),?`)
 
-		} else if strings.HasPrefix(line, "-") {
-			removalReached = true
-		} else if strings.HasPrefix(line, "+") {
-			if currentFile != "" && currentLine != 0 {
-				newCode = append(newCode, strings.TrimPrefix(line, "+"))
-			}
-		} else {
-			if removalReached && len(newCode) > 0 && currentFile != "" && currentLine != 0 {
+	scanner := bufio.NewScanner(strings.NewReader(diffText))
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if matches := fileRegex.FindStringSubmatch(line); matches != nil {
+			currentFile = matches[1]
+			continue
+		}
+
+		if matches := lineRegex.FindStringSubmatch(line); matches != nil {
+			currentLine = atoi(matches[1]) - 1
+			newCode = []string{}
+			removalReached = false
+			continue
+		}
+
+		if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
+			newCode = append(newCode, line[1:]) // Remove `+`
+			continue
+		}
+
+		if !removalReached {
+			currentLine++
+		}
+
+		if strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---") {
+			if len(newCode) > 0 && currentFile != "" {
 				suggestions = append(suggestions, CodeSuggestion{
 					File:       currentFile,
 					Line:       currentLine,
 					Suggestion: newCode,
 				})
 				newCode = []string{}
-				removalReached = false
 			}
-			currentLine++
+			removalReached = true
 		}
+
 	}
 
-	if removalReached && len(newCode) > 0 && currentFile != "" && currentLine != 0 {
+	if len(newCode) > 0 && currentFile != "" {
 		suggestions = append(suggestions, CodeSuggestion{
 			File:       currentFile,
 			Line:       currentLine,
@@ -69,4 +71,25 @@ func parseDiff(diffText string) []CodeSuggestion {
 	}
 
 	return suggestions
+}
+
+func atoi(s string) int {
+	var i int
+	fmt.Sscanf(s, "%d", &i)
+	return i
+}
+
+func determineProjectBasePath(filenameFromDiff string) string {
+	if strings.Contains(strings.ToLower(filenameFromDiff), "counter") {
+		return "CounterBackend" // No trailing slash needed here for filepath.Join
+	}
+	if strings.Contains(strings.ToLower(filenameFromDiff), "adder") {
+		return "AdderBackend"
+	}
+
+	fmt.Printf(
+		"Warning: Could not determine project base path for file '%s'. Assuming repo root.\n",
+		filenameFromDiff,
+	)
+	return ""
 }

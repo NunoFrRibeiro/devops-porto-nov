@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"dagger/porto-meetup/internal/dagger"
@@ -101,22 +102,42 @@ func (d *PortoMeetup) DebugPR(
 	}
 	codeSuggestions := parseDiff(suggestionDiff)
 
+	var correctedSuggestions []CodeSuggestion
 	for _, codeSuggestion := range codeSuggestions {
+		projectBasePath := determineProjectBasePath(codeSuggestion.File)
+
+		var fullPath string
+		if projectBasePath != "" {
+			fullPath = filepath.Join(projectBasePath, codeSuggestion.File)
+		} else {
+			fullPath = codeSuggestion.File
+		}
+
+		fullPath = filepath.ToSlash(fullPath)
+
+		updatedSuggestion := CodeSuggestion{
+			File:       fullPath,
+			Line:       codeSuggestion.Line,
+			Suggestion: codeSuggestion.Suggestion,
+		}
+
+		correctedSuggestions = append(correctedSuggestions, updatedSuggestion)
+
 		markupSuggestion := "```suggestion\n" + strings.Join(
 			codeSuggestion.Suggestion,
 			"\n",
 		) + "\n```"
-		err := githubIssue.WriteComment(ctx, GH_REPO, pr, markupSuggestion)
-		// err := githubIssue.WritePullRequestCodeComment(
-		// 	ctx,
-		// 	GH_REPO,
-		// 	pr,
-		// 	commit,
-		// 	markupSuggestion,
-		// 	codeSuggestion.File,
-		// 	"RIGHT",
-		// 	codeSuggestion.Line,
-		// )
+		fmt.Printf("markup: %s\n", markupSuggestion)
+		err := githubIssue.WritePullRequestCodeComment(
+			ctx,
+			GH_REPO,
+			pr,
+			commit,
+			markupSuggestion,
+			fullPath,
+			"RIGHT",
+			codeSuggestion.Line,
+		)
 		if err != nil {
 			return err
 		}
