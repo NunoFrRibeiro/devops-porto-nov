@@ -7,6 +7,7 @@ Tests are failing
   3. If the error is on the AdderBackend API only debug for the AdderBackend
   4. Consider the code diff for what work has been done so far
   5. Run the checks to make sure the changes are valid and incorporate any changes needed to pass checks
+  6. Do not terminate until all checks succeed.
 
 ## Constraints
   - There is no main.go file
