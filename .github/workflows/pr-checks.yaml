@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 env:
-  DAGGER_VERSION: 0.18.11
+  DAGGER_VERSION: 0.18.14
   GEMINI_API_KEY: ${{ secrets.LLM_API_KEY }}
 
 jobs:

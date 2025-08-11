@@ -1,14 +1,14 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.12.0/.schema/devbox.schema.json",
   "packages": [
-    "go@1.23.0",
-    "github:dagger/nix/fabaafc87072c43477bb1cb7469fb718fb704495#packages.x86_64-linux.dagger",
+    "github:dagger/nix/81b99dbe1176d4b9842604ec8d64e4ee803dd851#packages.x86_64-linux.dagger",
     "just@1.34.0",
     "kubernetes-helm@3.15.4",
     "k9s@0.32.5",
     "bat@0.24.0",
     "gh@2.57.0",
     "golangci-lint@1.62.0",
+    "go@1.25rc3",
   ],
   "shell": {
     "init_hook": [
